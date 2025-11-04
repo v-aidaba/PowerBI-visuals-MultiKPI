@@ -71,6 +71,8 @@ import {
     getFormattedValueWithFallback,
 } from "../data/dataFormatter";
 
+import { DataGapDetector, IDataGapResult } from "../../utils/dataGapDetector";
+
 export interface IColumnGroup {
     name: string;
     values: PrimitiveValue[];
@@ -410,12 +412,30 @@ export class DataConverter implements IConverter<IDataConverterOptions, IDataRep
 
     private postProcessData(dataRepresentation: IDataRepresentation, settings: Settings): void {
         dataRepresentation.staleDateDifference = 0;
+        dataRepresentation.dataGapInfo = {
+            hasGaps: false,
+            totalMissingDays: 0,
+            seriesGaps: {}
+        };
 
         dataRepresentation.series.forEach((series: IDataRepresentationSeries) => {
             if (series?.current?.x) {
                 series.staleDateDifference = this.getDaysBetween(series.current.x, new Date());
                 if (series.staleDateDifference > dataRepresentation.staleDateDifference) {
                     dataRepresentation.staleDateDifference = series.staleDateDifference;
+                }
+            }
+            if (series.points.length > 1) {                
+                const gapResult: IDataGapResult = DataGapDetector.detectGaps(series.points);
+                
+                dataRepresentation.dataGapInfo.seriesGaps[series.name] = {
+                    hasGaps: gapResult.hasGaps,
+                    totalMissingDays: gapResult.totalMissingDays
+                };
+
+                if (gapResult.hasGaps) {
+                    dataRepresentation.dataGapInfo.hasGaps = true;
+                    dataRepresentation.dataGapInfo.totalMissingDays += gapResult.totalMissingDays;
                 }
             }
 

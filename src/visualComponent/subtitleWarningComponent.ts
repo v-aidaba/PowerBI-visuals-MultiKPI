@@ -28,10 +28,12 @@ type Selection = d3Selection<BaseType, unknown, BaseType, unknown>;
 
 import powerbi from "powerbi-visuals-api";
 import { CssConstants } from "powerbi-visuals-utils-svgutils";
-import { IDataRepresentationSeries } from "../converter/data/dataRepresentation";
+import { IDataRepresentation, IDataRepresentationSeries } from "../converter/data/dataRepresentation";
 import { StaleDataDescriptor } from "../settings/descriptors/staleDataDescriptor";
+import { DataGapDescriptor } from "../settings/descriptors/dataGapDescriptor";
 import { ISubtitleComponentRenderOptions, SubtitleComponent } from "./subtitleComponent";
 import { IVisualComponentConstructorOptions } from "./visualComponentConstructorOptions";
+import { DataGapDetector } from "../utils/dataGapDetector";
 
 import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 import { SubtitleBaseContainerItem } from "../settings/descriptors/subtitleBaseDescriptor";
@@ -41,7 +43,9 @@ export interface ISubtitleWarningComponentRenderOptions extends ISubtitleCompone
     staleDataDifference: number;
     subtitleSettings: SubtitleBaseContainerItem;
     staleDataSettings: StaleDataDescriptor;
+    dataGapSettings: DataGapDescriptor;
     series: IDataRepresentationSeries[];
+    dataRepresentation: IDataRepresentation;
 }
 
 interface IIcon {
@@ -55,6 +59,7 @@ interface IIcon {
 export class SubtitleWarningComponent extends SubtitleComponent {
     private warningSelector: CssConstants.ClassAndSelector = this.getSelectorWithPrefix("warning");
     private dataAgeSelector: CssConstants.ClassAndSelector = this.getSelectorWithPrefix("dataAge");
+    private dataGapSelector: CssConstants.ClassAndSelector = this.getSelectorWithPrefix("dataGap");
 
     constructor(options: IVisualComponentConstructorOptions) {
         super(options);
@@ -65,15 +70,18 @@ export class SubtitleWarningComponent extends SubtitleComponent {
     public render(options: ISubtitleWarningComponentRenderOptions): void {
         const {
             staleDataSettings,
+            dataGapSettings,
             subtitleSettings,
             warningState,
             series,
             staleDataDifference,
+            dataRepresentation,
         } = options;
 
         this.renderWarningMessage(warningState, subtitleSettings.warningText.value);
         super.render(options);
         this.renderStaleData(staleDataSettings, series, staleDataDifference);
+        this.renderDataGapWarning(dataGapSettings, dataRepresentation);
     }
 
     private renderWarningMessage(warningState: number, warningText: string): void {
@@ -160,7 +168,7 @@ export class SubtitleWarningComponent extends SubtitleComponent {
         this.renderIcon({
             backgroundColor: backgroundColor.value.value,
             color: color.value.value,
-            isShown: isShown && isDataStale,
+            isShown: isShown.value && isDataStale,
             selector: this.dataAgeSelector,
             tooltipItems,
         });
@@ -202,5 +210,56 @@ export class SubtitleWarningComponent extends SubtitleComponent {
             iconSelection,
             () => tooltipItems ? tooltipItems : null
         );
+    }
+
+    private renderDataGapWarning(
+        dataGapSettings: DataGapDescriptor,
+        dataRepresentation: IDataRepresentation
+    ): void {
+        const {
+            backgroundColor,
+            color,
+            isShown,
+            gapMessage,
+        } = dataGapSettings;
+
+        const hasGaps = dataRepresentation.dataGapInfo?.hasGaps ?? false;
+        const totalMissingDays = dataRepresentation.dataGapInfo?.totalMissingDays ?? 0;
+
+        let tooltipItems: VisualTooltipDataItem[] = [];
+
+        if (hasGaps && totalMissingDays > 0) {
+            const formattedMessage = DataGapDetector.formatGapMessage(gapMessage.value, totalMissingDays);
+            
+            if (dataRepresentation.dataGapInfo?.seriesGaps) {
+                const seriesWithGaps = Object.entries(dataRepresentation.dataGapInfo.seriesGaps)
+                    .filter(([, gapInfo]) => gapInfo.hasGaps);
+
+                if (seriesWithGaps.length > 1) {
+                    tooltipItems = seriesWithGaps.map(([seriesName, gapInfo]) => ({
+                        displayName: seriesName,
+                        value: DataGapDetector.formatGapMessage(gapMessage.value, gapInfo.totalMissingDays),
+                    }));
+                } else {
+                    tooltipItems = [{
+                        displayName: null,
+                        value: formattedMessage,
+                    }];
+                }
+            } else {
+                tooltipItems = [{
+                    displayName: null,
+                    value: formattedMessage,
+                }];
+            }
+        }
+
+        this.renderIcon({
+            backgroundColor: backgroundColor.value.value,
+            color: color.value.value,
+            isShown: isShown.value && hasGaps,
+            selector: this.dataGapSelector,
+            tooltipItems: tooltipItems,
+        });
     }
 }

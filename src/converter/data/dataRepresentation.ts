@@ -103,4 +103,11 @@ export interface IDataRepresentation {
     subtitle?: string;
     viewport: IViewport;
     viewportSize: ViewportSize;
+    dataGapInfo?: IDataGapInfo;
+}
+
+export interface IDataGapInfo {
+    hasGaps: boolean;
+    totalMissingDays: number;
+    seriesGaps: { [seriesName: string]: { hasGaps: boolean; totalMissingDays: number; } };
 }
