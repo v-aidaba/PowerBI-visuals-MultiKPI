@@ -226,7 +226,7 @@ export class SubtitleWarningComponent extends SubtitleComponent {
         const hasGaps = dataRepresentation.dataGapInfo?.hasGaps ?? false;
         const totalMissingDays = dataRepresentation.dataGapInfo?.totalMissingDays ?? 0;
 
-        let tooltipItems: VisualTooltipDataItem[] = [];
+        let tooltipItems: VisualTooltipDataItem[];
 
         if (hasGaps && totalMissingDays > 0) {
             const formattedMessage = DataGapDetector.formatGapMessage(gapMessage.value, totalMissingDays);
@@ -259,7 +259,7 @@ export class SubtitleWarningComponent extends SubtitleComponent {
             color: color.value.value,
             isShown: isShown.value && hasGaps,
             selector: this.dataGapSelector,
-            tooltipItems: tooltipItems,
+            tooltipItems: tooltipItems || [],
         });
     }
 }

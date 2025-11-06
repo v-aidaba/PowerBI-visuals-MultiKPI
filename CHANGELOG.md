@@ -1,3 +1,7 @@
+## 3.1.0.0
+* Add new option "Data Gaps" to detect missing days in time-series data and display a warning icon when gaps are found.
+* Add Data Gaps controls to toggle the icon, adjust its colors, and set a custom message.
+
 ## 3.0.1.0
 ### Fixes
 * Add bold, italic and underline to sparkline value

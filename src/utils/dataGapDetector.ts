@@ -33,14 +33,16 @@ export interface IDataGapResult {
 
 
 export class DataGapDetector {
-    
+    private static oneDayInMs: number = 24 * 60 * 60 * 1000;
+
     public static detectGaps(points: IDataRepresentationPoint[]): IDataGapResult {
         const result: IDataGapResult = { hasGaps: false, totalMissingDays: 0, gaps: [] };
         if (!points || points.length < 2) return result;
 
+        // Sort by date (oldest → newest)
         const sorted = [...points].sort((a, b) => a.x.getTime() - b.x.getTime());
         const valid = sorted.filter(p => this.isValid(p));
-        if (valid.length < 2) return result;
+        if (valid.length < 2) return result; // If almost all points are invalid, we cannot detect gaps
 
         let currentGapStart: Date | null = null;
         let gapDays = 0;
@@ -50,16 +52,21 @@ export class DataGapDetector {
             const curr = sorted[i];
             const isPrevValid = this.isValid(prev);
             const isCurrValid = this.isValid(curr);
-
             const days = this.daysBetween(prev.x, curr.x);
 
+            // A gap happens if:
+            // - previous or current value is invalid, OR
+            // - more than 1 day is missing between the dates
             if (!isPrevValid || !isCurrValid || days > 1) {
                 if (!currentGapStart) currentGapStart = prev.x;
-                gapDays += days > 1 ? days - 1 : 1;
-            } else if (currentGapStart) {
+                gapDays += days > 1 ? days - 1 : 1;  // If days are missing, count them; otherwise count this invalid point
+            }
+            // No gap → close the previous gap if one was started
+            else if (currentGapStart) {  
+                // Move one day forward/back to mark the missing period clearly
                 result.gaps.push({
-                    startDate: new Date(currentGapStart.getTime() + 86400000),
-                    endDate: new Date(curr.x.getTime() - 86400000),
+                    startDate: new Date(currentGapStart.getTime() + this.oneDayInMs),
+                    endDate: new Date(curr.x.getTime() - this.oneDayInMs),
                     missingDays: gapDays
                 });
                 result.totalMissingDays += gapDays;
@@ -68,6 +75,7 @@ export class DataGapDetector {
             }
         }
 
+        // If the gap continues until the last point, close it here
         if (currentGapStart && gapDays > 0) {
             const last = sorted[sorted.length - 1];
             result.gaps.push({ startDate: currentGapStart, endDate: last.x, missingDays: gapDays });
@@ -78,13 +86,14 @@ export class DataGapDetector {
         return result;
     }
 
+    // Checks if a value is usable
     private static isValid(p: IDataRepresentationPoint): boolean {
         const y = p?.y;
         return y != null && isFinite(y) && !isNaN(y);
     }
 
     private static daysBetween(a: Date, b: Date): number {
-        return Math.ceil((b.getTime() - a.getTime()) / 86400000);
+        return Math.ceil((b.getTime() - a.getTime()) / this.oneDayInMs);
     }
 
     public static formatGapMessage(template: string, totalMissingDays: number): string {
