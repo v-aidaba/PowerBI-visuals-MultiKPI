@@ -59,7 +59,7 @@ export class DataGapDetector {
             // - more than 1 day is missing between the dates
             if (!isPrevValid || !isCurrValid || days > 1) {
                 if (!currentGapStart) currentGapStart = prev.x;
-                gapDays += days > 1 ? days - 1 : 1;  // If days are missing, count them; otherwise count this invalid point
+                gapDays += days > 1 ? days - 1 : 1;  // If multiple days are missing, count the exact gap.If the date is present but the value is invalid (NaN/null), count it as 1 invalid data point.
             }
             // No gap → close the previous gap if one was started
             else if (currentGapStart) {  

@@ -56,9 +56,9 @@ export class DataGapDescriptor extends BaseDescriptor {
     });
 
     public color: ColorPicker = new ColorPicker({
-        name: "color", 
+        name: "color",
         displayNameKey: "Visual_Color",
-        value: { value: this.defaultColorValue },
+        value: { value: this.defaultColorValue }
     });
 
     public slices: FormattingSettingsSlice[] = [
