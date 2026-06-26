@@ -933,7 +933,9 @@
           "type": {
             "fill": {
               "solid": {
-                "color": true
+                "color": {
+                  "nullable": true
+                }
               }
             }
           }

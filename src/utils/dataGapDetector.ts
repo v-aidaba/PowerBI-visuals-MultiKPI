@@ -47,19 +47,29 @@ export class DataGapDetector {
         let currentGapStart: Date | null = null;
         let gapDays = 0;
 
+        // If the first point is invalid, count it once to start a gap
+        if (!this.isValid(sorted[0])) {
+            currentGapStart = sorted[0].x;
+            gapDays = 1;
+        }
+
         for (let i = 1; i < sorted.length; i++) {
             const prev = sorted[i - 1];
             const curr = sorted[i];
-            const isPrevValid = this.isValid(prev);
             const isCurrValid = this.isValid(curr);
             const days = this.daysBetween(prev.x, curr.x);
 
             // A gap happens if:
-            // - previous or current value is invalid, OR
+            // - current value is invalid, OR
             // - more than 1 day is missing between the dates
-            if (!isPrevValid || !isCurrValid || days > 1) {
+            if (!isCurrValid || days > 1) {
                 if (!currentGapStart) currentGapStart = prev.x;
-                gapDays += days > 1 ? days - 1 : 1;  // If multiple days are missing, count the exact gap.If the date is present but the value is invalid (NaN/null), count it as 1 invalid data point.
+                if (days > 1) {
+                    gapDays += days - 1;
+                }
+                if (!isCurrValid) {
+                    gapDays += 1;
+                }
             }
             // No gap → close the previous gap if one was started
             else if (currentGapStart) {  
@@ -98,6 +108,6 @@ export class DataGapDetector {
 
     public static formatGapMessage(template: string, totalMissingDays: number): string {
         return (template || `⚠️ ${totalMissingDays} missing days detected`)
-            .replace("${1}", totalMissingDays.toString());
+            .replace(/\$\{1\}/g, totalMissingDays.toString());
     }
 }

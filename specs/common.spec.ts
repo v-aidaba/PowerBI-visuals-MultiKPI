@@ -131,7 +131,7 @@ describe("Multi KPI", () => {
                     const result: IDataGapResult = DataGapDetector.detectGaps(points);
                     
                     expect(result.hasGaps).toBeTruthy();
-                    expect(result.totalMissingDays).toBeGreaterThan(0);
+                    expect(result.totalMissingDays).toBe(1);
                 });
 
                 it("should handle points with zero values as valid", () => {
