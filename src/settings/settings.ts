@@ -36,6 +36,7 @@ import FormattingSettingsCard = formattingSettings.Cards;
 import { AxisDescriptor } from "./descriptors/axisDescriptor";
 import { PrintDescriptor } from "./descriptors/printDescriptor";
 import { ChartDescriptor } from "./descriptors/chartDescriptor";
+import { DataGapDescriptor } from "./descriptors/dataGapDescriptor";
 import { DateDescriptor } from "./descriptors/dateDescriptor";
 import { GridDescriptor } from "./descriptors/gridDescriptor";
 import { KpiDescriptor } from "./descriptors/kpi/kpiDescriptor";
@@ -71,6 +72,7 @@ export class Settings extends FormattingSettingsModel {
     public sparklineValue: SparklineValueDescriptor = new SparklineValueDescriptor();
     public subtitle: SubtitleContainerItem = new SubtitleContainerItem();
     public staleData: StaleDataDescriptor = new StaleDataDescriptor();
+    public dataGap: DataGapDescriptor = new DataGapDescriptor();
     public printMode: PrintDescriptor = new PrintDescriptor();
 
     public cards: FormattingSettingsCard[] = [
@@ -79,7 +81,7 @@ export class Settings extends FormattingSettingsModel {
         this.kpi, this.kpiOnHover, this.grid, this.sparkline,
         this.sparklineLabel, this.sparklineChart,
         this.sparklineValue, this.sparklineYAxis,
-        this.subtitle, this.staleData, this.printMode
+        this.subtitle, this.staleData, this.dataGap, this.printMode
     ]
 
     public parse(colorPalette: ISandboxExtendedColorPalette, localizationManager: ILocalizationManager): void {
@@ -89,6 +91,7 @@ export class Settings extends FormattingSettingsModel {
 
         if (!this.subtitle.show.value) {
             this.staleData.isShown.value = false;
+            this.dataGap.isShown.value = false;
         }
 
         this.cards.forEach((card) => {

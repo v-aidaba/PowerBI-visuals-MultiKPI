@@ -51,6 +51,7 @@ import {
 } from "../src/converter/data/dataRepresentation";
 
 import { isValueValid } from "../src/utils/isValueValid";
+import { DataGapDetector, IDataGapResult } from "../src/utils/dataGapDetector";
 
 import { DataConverter } from "../src/converter/data/dataConverter";
 import { getFormattedValueWithFallback } from "../src/converter/data/dataFormatter";
@@ -63,6 +64,115 @@ import { SubtitleWarningComponent } from "../src/visualComponent/subtitleWarning
 import { MultiKpiBuilder } from "./multiKpiBuilder";
 
 describe("Multi KPI", () => {
+      describe("Version 2.4.0 Changes", () => {
+        describe("DataGapDetector", () => {
+            describe("detectGaps", () => {
+                it("should return no gaps for single point", () => {
+                    const points: IDataRepresentationPoint[] = [
+                        { x: new Date(2023, 0, 1), y: 100, index: 0 }
+                    ];
+                    
+                    const result: IDataGapResult = DataGapDetector.detectGaps(points);
+                    
+                    expect(result.hasGaps).toBeFalsy();
+                    expect(result.totalMissingDays).toBe(0);
+                    expect(result.gaps).toEqual([]);
+                });
+
+                it("should return no gaps for consecutive days with valid values", () => {
+                    const points: IDataRepresentationPoint[] = [
+                        { x: new Date(2023, 0, 1), y: 100, index: 0 },
+                        { x: new Date(2023, 0, 2), y: 200, index: 1 },
+                        { x: new Date(2023, 0, 3), y: 300, index: 2 }
+                    ];
+                    
+                    const result: IDataGapResult = DataGapDetector.detectGaps(points);
+                    
+                    expect(result.hasGaps).toBeFalsy();
+                    expect(result.totalMissingDays).toBe(0);
+                    expect(result.gaps).toEqual([]);
+                });
+
+                it("should detect gap with missing day between valid points", () => {
+                    const points: IDataRepresentationPoint[] = [
+                        { x: new Date(2023, 0, 1), y: 100, index: 0 },
+                        { x: new Date(2023, 0, 3), y: 300, index: 1 }
+                    ];
+                    
+                    const result: IDataGapResult = DataGapDetector.detectGaps(points);
+                    
+                    expect(result.hasGaps).toBeTruthy();
+                    expect(result.totalMissingDays).toBe(1);
+                    expect(result.gaps.length).toBe(1);
+                    expect(result.gaps[0].missingDays).toBe(1);
+                });
+
+                it("should detect multiple days gap", () => {
+                    const points: IDataRepresentationPoint[] = [
+                        { x: new Date(2023, 0, 1), y: 100, index: 0 },
+                        { x: new Date(2023, 0, 5), y: 500, index: 1 }
+                    ];
+                    
+                    const result: IDataGapResult = DataGapDetector.detectGaps(points);
+                    
+                    expect(result.hasGaps).toBeTruthy();
+                    expect(result.totalMissingDays).toBe(3);
+                    expect(result.gaps.length).toBe(1);
+                    expect(result.gaps[0].missingDays).toBe(3);
+                });
+
+                it("should handle invalid values as gaps", () => {
+                    const points: IDataRepresentationPoint[] = [
+                        { x: new Date(2023, 0, 1), y: 100, index: 0 },
+                        { x: new Date(2023, 0, 2), y: NaN, index: 1 },
+                        { x: new Date(2023, 0, 3), y: 300, index: 2 }
+                    ];
+                    
+                    const result: IDataGapResult = DataGapDetector.detectGaps(points);
+                    
+                    expect(result.hasGaps).toBeTruthy();
+                    expect(result.totalMissingDays).toBe(1);
+                });
+
+                it("should handle points with zero values as valid", () => {
+                    const points: IDataRepresentationPoint[] = [
+                        { x: new Date(2023, 0, 1), y: 100, index: 0 },
+                        { x: new Date(2023, 0, 2), y: 0, index: 1 },
+                        { x: new Date(2023, 0, 3), y: 300, index: 2 }
+                    ];
+                    
+                    const result: IDataGapResult = DataGapDetector.detectGaps(points);
+                    
+                    expect(result.hasGaps).toBeFalsy();
+                    expect(result.totalMissingDays).toBe(0);
+                    expect(result.gaps).toEqual([]);
+                });
+
+                it("should handle large gaps correctly", () => {
+                    const points: IDataRepresentationPoint[] = [
+                        { x: new Date(2023, 0, 1), y: 100, index: 0 },
+                        { x: new Date(2023, 1, 1), y: 200, index: 1 } // About 31 days gap
+                    ];
+                    
+                    const result: IDataGapResult = DataGapDetector.detectGaps(points);
+                    
+                    expect(result.hasGaps).toBeTruthy();
+                    expect(result.totalMissingDays).toBeGreaterThan(25); // Allow some tolerance
+                    expect(result.gaps.length).toBe(1);
+                });
+            });
+
+            describe("formatGapMessage", () => {
+                it("should format message with placeholder replacement", () => {
+                    const template: string = "Warning: ${1} days of data are missing";
+                    const result: string = DataGapDetector.formatGapMessage(template, 5);
+                    
+                    expect(result).toBe("Warning: 5 days of data are missing");
+                });
+            });
+        });
+    });
+
     describe("Version 2.3.0 Changes", () => {
         describe("DataFormatter", () => {
             it("should return N/A if a variance is not valid", () => {

@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 0 * * 3'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze
@@ -29,10 +33,11 @@ jobs:
       with:
         fetch-depth: 2
 
-    - name: Use Node.js 18
-      uses: actions/setup-node@v2
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
       with:
-        node-version: 18.x
+        node-version: 20.x
+        cache: 'npm'
 
     - name: Install Dependencies
       run: npm ci

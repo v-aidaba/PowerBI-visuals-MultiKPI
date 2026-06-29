@@ -908,6 +908,40 @@
         }
       }
     },
+    "dataGap": {
+      "properties": {
+        "isShown": {
+          "type": {
+            "bool": true
+          }
+        },
+        "gapMessage": {
+          "type": {
+            "text": true
+          }
+        },
+        "color": {
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "backgroundColor": {
+          "type": {
+            "fill": {
+              "solid": {
+                "color": {
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "printMode": {
       "properties": {
         "show": {

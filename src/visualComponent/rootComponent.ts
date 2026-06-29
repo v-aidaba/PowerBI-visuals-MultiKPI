@@ -209,9 +209,11 @@ export class RootComponent extends BaseContainerComponent<
             series: data.series,
             staleDataDifference: data.staleDateDifference,
             staleDataSettings: settings.staleData,
+            dataGapSettings: settings.dataGap,
             subtitleSettings: settings.subtitle,
             warningState: data.warningState,
             subtitle: data.subtitle,
+            dataRepresentation: data,
         });
 
         const subtitleComponentHeight: number = this.subtitleComponent.getViewport().height;
