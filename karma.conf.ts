@@ -35,10 +35,18 @@ const tsconfig = require("./tsconfig.json");
 const testRecursivePath = "specs/*.spec.ts";
 const coverageFolder = "coverage";
 
+const isCI = !!process.env.CI;
+
 module.exports = (config) => {
     config.set({
         browserNoActivityTimeout: 100000,
-        browsers: ["ChromeHeadless"],
+        browsers: [isCI ? "ChromeHeadlessCI" : "ChromeHeadless"],
+        customLaunchers: {
+            ChromeHeadlessCI: {
+                base: "ChromeHeadless",
+                flags: ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
+            },
+        },
         colors: true,
         coverageIstanbulReporter: {
             "combineBrowserReports": true,
