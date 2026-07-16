@@ -137,7 +137,9 @@ export class ChartLabelComponent extends ChartLabelBaseComponent<IChartLabelComp
             [
                 {
                     color: kpiSettings.dateColor.value.value,
-                    data: `${series.dateDifference} days`,
+                    data: kpiSettings.showStartDate.value && kpiSettings.percentCalcDate
+                        ? `${series.dateDifference} days (since ${series.formattedDate})`
+                        : `${series.dateDifference} days`,
                     fontSizeInPt: kpiSettings.autoAdjustFontSize.value
                         ? null
                         : kpiSettings.dateFontSize.value,

@@ -24,15 +24,25 @@
  *  THE SOFTWARE.
  */
 
+import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
+import ToggleSwitch = formattingSettings.ToggleSwitch;
+
 import { KpiBaseDescriptor } from "./kpiBaseDescriptor";
 
 export class KpiDescriptor extends KpiBaseDescriptor {
     public name: string = "kpi";
     public displayNameKey: string = "Visual_KPI";
 
+    public showStartDate: ToggleSwitch = new ToggleSwitch({
+        name: "showStartDate",
+        displayNameKey: "Visual_ShowStartDate",
+        value: false,
+    });
+
     constructor(){
         super();
 
+        this.slices.push(this.showStartDate);
         this.slices.push(this.startDate);
     }
 

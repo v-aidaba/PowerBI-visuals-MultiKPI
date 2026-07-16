@@ -72,6 +72,7 @@ import {
 } from "../data/dataFormatter";
 
 import { DataGapDetector, IDataGapResult } from "../../utils/dataGapDetector";
+import { isValidDate } from "../../utils/isValidDate";
 
 export interface IColumnGroup {
     name: string;
@@ -139,30 +140,82 @@ export class DataConverter implements IConverter<IDataConverterOptions, IDataRep
         date: Date,
         defaultDataPoint: IDataRepresentationPoint,
     ): IDataRepresentationPoint {
-        if (!dataPoints || !date || !(date instanceof Date)) {
+        if (!dataPoints || !dataPoints.length || !isValidDate(date)) {
             return defaultDataPoint;
         }
 
-        const dateTime: number = date.getTime();
+        // Compare on calendar-day granularity so a start date matches the data point of the
+        // same day regardless of its time/timezone component.
+        const targetDay: number = this.getDayValue(date);
 
-        let closestDataPoint: IDataRepresentationPoint;
-
+        // Match the exact day, otherwise fall back to the next available date that exists
+        // (the closest data point on or after the requested date).
         for (const dataPoint of dataPoints) {
-            const currentTime: number = dataPoint.x.getTime();
+            const currentDay: number = this.getDayValue(dataPoint.x);
 
-            if (currentTime === dateTime) {
-                closestDataPoint = dataPoint;
-
-                break;
-            }
-            else if (currentTime < dateTime) {
-                closestDataPoint = dataPoint;
-            } else {
-                break;
+            if (currentDay >= targetDay) {
+                return dataPoint;
             }
         }
 
-        return closestDataPoint || defaultDataPoint;
+        // The requested date is after the last available date, so there is no next date.
+        // Fall back to the closest (latest) available date.
+        return dataPoints[dataPoints.length - 1];
+    }
+
+    private getDayValue(date: Date): number {
+        return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    // Flags when the user typed a value into the start date input that is not a parseable date,
+    // so the visual can hint that the entry was ignored instead of silently using the first point.
+    private detectInvalidStartDateInput(dataRepresentation: IDataRepresentation, settings: Settings): void {
+        const rawValue: string = settings.kpi.startDate.value;
+
+        if (rawValue && !settings.kpi.percentCalcDate && !dataRepresentation.percentCalcDate) {
+            dataRepresentation.startDateAdjustment = {
+                isAdjusted: true,
+                isOutOfRange: false,
+                isInvalidInput: true,
+                requestedText: rawValue,
+            };
+        }
+    }
+
+    // Flags when a user-selected start date does not match the resolved data point
+    // (either because that day is missing from the series or it falls outside the range),
+    // so the visual can surface a hint. The first affected series is reported.
+    private detectStartDateAdjustment(
+        dataRepresentation: IDataRepresentation,
+        series: IDataRepresentationSeries,
+        startDataPoint: IDataRepresentationPoint,
+    ): void {
+        const requestedDate: Date = dataRepresentation.percentCalcDate;
+
+        if (!isValidDate(requestedDate)) {
+            return;
+        }
+
+        if (!startDataPoint || !startDataPoint.x || !series.points.length) {
+            return;
+        }
+
+        const requestedDay: number = this.getDayValue(requestedDate);
+        const actualDay: number = this.getDayValue(startDataPoint.x);
+
+        if (requestedDay === actualDay || dataRepresentation.startDateAdjustment?.isAdjusted) {
+            return;
+        }
+
+        const firstDay: number = this.getDayValue(series.points[0].x);
+        const lastDay: number = this.getDayValue(series.points[series.points.length - 1].x);
+
+        dataRepresentation.startDateAdjustment = {
+            isAdjusted: true,
+            requestedDate,
+            actualDate: startDataPoint.x,
+            isOutOfRange: requestedDay < firstDay || requestedDay > lastDay,
+        };
     }
 
     public isDataViewValid(dataView: DataView): boolean {
@@ -417,6 +470,12 @@ export class DataConverter implements IConverter<IDataConverterOptions, IDataRep
             totalMissingDays: 0,
             seriesGaps: {}
         };
+        dataRepresentation.startDateAdjustment = {
+            isAdjusted: false,
+            isOutOfRange: false,
+        };
+
+        this.detectInvalidStartDateInput(dataRepresentation, settings);
 
         dataRepresentation.series.forEach((series: IDataRepresentationSeries) => {
             if (series?.current?.x) {
@@ -467,6 +526,8 @@ export class DataConverter implements IConverter<IDataConverterOptions, IDataRep
                 dataRepresentation.percentCalcDate,
                 series.points[0],
             );
+
+            this.detectStartDateAdjustment(dataRepresentation, series, startDataPoint);
 
             const endDataPoint: IDataRepresentationPoint = series.points[series.points.length - 1];
 

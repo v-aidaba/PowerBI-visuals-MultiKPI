@@ -104,10 +104,20 @@ export interface IDataRepresentation {
     viewport: IViewport;
     viewportSize: ViewportSize;
     dataGapInfo?: IDataGapInfo;
+    startDateAdjustment?: IStartDateAdjustment;
 }
 
 export interface IDataGapInfo {
     hasGaps: boolean;
     totalMissingDays: number;
     seriesGaps: { [seriesName: string]: { hasGaps: boolean; totalMissingDays: number; } };
+}
+
+export interface IStartDateAdjustment {
+    isAdjusted: boolean;
+    requestedDate?: Date;
+    actualDate?: Date;
+    isOutOfRange: boolean;
+    isInvalidInput?: boolean;
+    requestedText?: string;
 }

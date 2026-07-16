@@ -279,6 +279,11 @@
             "bool": true
           }
         },
+        "showStartDate": {
+          "type": {
+            "bool": true
+          }
+        },
         "percentCalcDateStr": {
           "type": {
             "text": true
@@ -1065,5 +1070,7 @@
         ]
     },
   "supportsMultiVisualSelection": true,
+  "supportsLandingPage": true,
+  "supportsEmptyDataView": true,
   "privileges": []
 }

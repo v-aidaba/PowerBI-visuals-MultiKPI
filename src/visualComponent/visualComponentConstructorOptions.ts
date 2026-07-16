@@ -27,6 +27,7 @@
 import { Dispatch } from "d3-dispatch";
 import powerbi from "powerbi-visuals-api";
 import IColorPalette = powerbi.extensibility.ISandboxExtendedColorPalette;
+import ILocalizationManager = powerbi.extensibility.ILocalizationManager;
 
 import { ScaleService } from "../services/scaleService";
 import { Settings } from "../settings/settings";
@@ -40,4 +41,5 @@ export interface IVisualComponentConstructorOptions extends IVisualComponentBase
     colorPalette?: IColorPalette;
     getSettings?: () => Settings;
     tooltipServiceWrapper?: ITooltipServiceWrapper;
+    localizationManager?: ILocalizationManager;
 }

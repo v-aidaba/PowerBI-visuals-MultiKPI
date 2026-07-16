@@ -46,6 +46,7 @@ import { DataOrderConverter } from "./converter/data/dataOrderConverter";
 import { DataOrderConverterWithDuplicates } from "./converter/data/dataOrderConverterWithDuplicates";
 
 import { IDataRepresentation } from "./converter/data/dataRepresentation";
+import { isValidDate } from "./utils/isValidDate";
 
 import { RootComponent } from "./visualComponent/rootComponent";
 import { IVisualComponent } from "./visualComponent/visualComponent";
@@ -73,6 +74,10 @@ export class MultiKpi implements powerbi.extensibility.visual.IVisual {
     private tooltipServiceWrapper: ITooltipServiceWrapper;
     private host: powerbi.extensibility.visual.IVisualHost;
     private selectionManager: ISelectionManager;
+    private element: HTMLElement;
+    private isLandingPageOn: boolean = false;
+    private landingPageRemoved: boolean = false;
+    private landingPage: HTMLElement | null = null;
 
     public rootComponent: IVisualComponent<IVisualComponentRenderOptions>;
 
@@ -83,6 +88,8 @@ export class MultiKpi implements powerbi.extensibility.visual.IVisual {
         } = options;
 
         this.host = host;
+
+        this.element = element;
 
         this.localizationManager = options.host.createLocalizationManager();
         this.formattingSettingsService = new FormattingSettingsService(this.localizationManager);
@@ -119,6 +126,7 @@ export class MultiKpi implements powerbi.extensibility.visual.IVisual {
             scaleService: new ScaleService(element),
             colorPalette: host.colorPalette,
             tooltipServiceWrapper: this.tooltipServiceWrapper,
+            localizationManager: this.localizationManager,
         });
 
         this.selectionManager = this.host.createSelectionManager();
@@ -141,25 +149,40 @@ export class MultiKpi implements powerbi.extensibility.visual.IVisual {
         try {
             this.host.eventService.renderingStarted(options);
 
-            const dataView: powerbi.DataView = options?.dataViews?.[0];
+            if (this.handleLandingPage(options)) {
+                this.rootComponent.hide?.();
+                this.renderNoDataMessage(null);
+            } else {
+                const dataView: powerbi.DataView = options?.dataViews?.[0];
 
-            this.viewport = this.getViewport(options?.viewport);
+                this.viewport = this.getViewport(options?.viewport);
 
-            this.settings = this.formattingSettingsService.populateFormattingSettingsModel(Settings, dataView);
+                this.settings = this.formattingSettingsService.populateFormattingSettingsModel(Settings, dataView);
 
-            this.dataRepresentation = this.dataConverter.convert({
-                dataView,
-                settings: this.settings,
-                viewport: this.viewport,
-            });
+                this.dataRepresentation = this.dataConverter.convert({
+                    dataView,
+                    settings: this.settings,
+                    viewport: this.viewport,
+                });
 
-            this.settings.parse(this.host.colorPalette, this.localizationManager);
+                this.settings.parse(this.host.colorPalette, this.localizationManager);
 
-            this.render(
-                this.dataRepresentation,
-                this.settings,
-                this.viewport,
-            );
+                const noDataMessage: string = this.getNoDataMessage(dataView, this.dataRepresentation);
+
+                if (noDataMessage) {
+                    this.rootComponent.hide?.();
+                    this.renderNoDataMessage(noDataMessage);
+                } else {
+                    this.renderNoDataMessage(null);
+                    this.rootComponent.show?.();
+
+                    this.render(
+                        this.dataRepresentation,
+                        this.settings,
+                        this.viewport,
+                    );
+                }
+            }
         } catch (ex) {
             this.host.eventService.renderingFailed(options, JSON.stringify(ex));
         }
@@ -169,6 +192,111 @@ export class MultiKpi implements powerbi.extensibility.visual.IVisual {
     public getFormattingModel(): powerbi.visuals.FormattingModel {
         return this.formattingSettingsService.buildFormattingModel(this.settings);
     }    
+
+    private getNoDataMessage(dataView: powerbi.DataView, data: IDataRepresentation): string | null {
+        const hasDate: boolean = !!dataView?.categorical?.categories?.[0]?.values?.length;
+        const hasValues: boolean = !!dataView?.categorical?.values?.length;
+
+        if (!hasDate && !hasValues) {
+            return this.localizationManager.getDisplayName("Visual_EmptyState_AddDateAndValues");
+        }
+
+        if (!hasDate) {
+            return this.localizationManager.getDisplayName("Visual_EmptyState_AddDate");
+        }
+
+        if (!hasValues) {
+            return this.localizationManager.getDisplayName("Visual_EmptyState_AddValues");
+        }
+
+        if (!this.hasValidDate(dataView)) {
+            return this.localizationManager.getDisplayName("Visual_EmptyState_InvalidDate");
+        }
+
+        if (!data?.series?.length || !this.hasValidData(data)) {
+            return this.localizationManager.getDisplayName("Visual_EmptyState_NoValidData");
+        }
+
+        return null;
+    }
+
+    private hasValidData(data: IDataRepresentation): boolean {
+        return data.series.some((series) =>
+            series?.points?.some((point) => point != null && !isNaN(point.y)),
+        );
+    }
+
+    private hasValidDate(dataView: powerbi.DataView): boolean {
+        const categories: powerbi.DataViewCategoryColumn[] | undefined = dataView?.categorical?.categories;
+
+        if (!categories?.length) {
+            return false;
+        }
+
+        const dateCategory: powerbi.DataViewCategoryColumn =
+            categories.find((category) => category?.source?.roles?.dateColumn) ?? categories[0];
+
+        return !!dateCategory?.values?.some(
+            (value) => isValidDate(value),
+        );
+    }
+
+    private handleLandingPage(options: powerbi.extensibility.visual.VisualUpdateOptions): boolean {
+        const hasData: boolean = !!options?.dataViews?.[0]?.metadata?.columns?.length;
+
+        if (!hasData) {
+            if (!this.isLandingPageOn) {
+                this.isLandingPageOn = true;
+                this.landingPageRemoved = false;
+                this.landingPage = this.createLandingPage();
+                this.element.appendChild(this.landingPage);
+            }
+
+            return true;
+        }
+
+        if (this.isLandingPageOn && !this.landingPageRemoved) {
+            this.isLandingPageOn = false;
+            this.landingPageRemoved = true;
+
+            if (this.landingPage) {
+                this.landingPage.remove();
+                this.landingPage = null;
+            }
+        }
+
+        return false;
+    }
+
+    private createLandingPage(): HTMLElement {
+        const container: HTMLElement = document.createElement("div");
+        container.classList.add("multiKpi_landingPage");
+
+        const icon: HTMLElement = document.createElement("div");
+        icon.classList.add("multiKpi_landingPage_icon");
+        container.appendChild(icon);
+
+        const title: HTMLElement = document.createElement("div");
+        title.classList.add("multiKpi_landingPage_title");
+        title.textContent = this.localizationManager.getDisplayName("Visual_LandingPage_Title");
+        container.appendChild(title);
+
+        const description: HTMLElement = document.createElement("div");
+        description.classList.add("multiKpi_landingPage_description");
+        description.textContent = this.localizationManager.getDisplayName("Visual_LandingPage_Description");
+        container.appendChild(description);
+
+        return container;
+    }
+
+    private renderNoDataMessage(message: string | null): void {
+        d3Select(this.element)
+            .selectAll("div.multiKpi_emptyState")
+            .data(message ? [message] : [])
+            .join("div")
+            .classed("multiKpi_emptyState", true)
+            .text((text: string) => text);
+    }
 
     private render(
         data: IDataRepresentation,
