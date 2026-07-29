@@ -211,6 +211,7 @@ export class RootComponent extends BaseContainerComponent<
             staleDataSettings: settings.staleData,
             dataGapSettings: settings.dataGap,
             subtitleSettings: settings.subtitle,
+            dateSettings: settings.date,
             warningState: data.warningState,
             subtitle: data.subtitle,
             dataRepresentation: data,

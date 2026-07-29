@@ -35,6 +35,7 @@ import { ISubtitleComponentRenderOptions, SubtitleComponent } from "./subtitleCo
 import { IVisualComponentConstructorOptions } from "./visualComponentConstructorOptions";
 import { DataGapDetector } from "../utils/dataGapDetector";
 import { getFormattedDate } from "../converter/data/dataFormatter";
+import { FormatDescriptor } from "../settings/descriptors/formatDescriptor";
 
 import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 import { SubtitleBaseContainerItem } from "../settings/descriptors/subtitleBaseDescriptor";
@@ -45,6 +46,7 @@ export interface ISubtitleWarningComponentRenderOptions extends ISubtitleCompone
     subtitleSettings: SubtitleBaseContainerItem;
     staleDataSettings: StaleDataDescriptor;
     dataGapSettings: DataGapDescriptor;
+    dateSettings: FormatDescriptor;
     series: IDataRepresentationSeries[];
     dataRepresentation: IDataRepresentation;
 }
@@ -78,16 +80,17 @@ export class SubtitleWarningComponent extends SubtitleComponent {
             series,
             staleDataDifference,
             dataRepresentation,
+            dateSettings,
         } = options;
 
         this.renderWarningMessage(warningState, subtitleSettings.warningText.value);
         super.render(options);
         this.renderStaleData(staleDataSettings, series, staleDataDifference);
         this.renderDataGapWarning(dataGapSettings, dataRepresentation);
-        this.renderStartDateHint(dataRepresentation);
+        this.renderStartDateHint(dataRepresentation, dateSettings);
     }
 
-    private renderStartDateHint(dataRepresentation: IDataRepresentation): void {
+    private renderStartDateHint(dataRepresentation: IDataRepresentation, dateSettings: FormatDescriptor): void {
         const adjustment = dataRepresentation.startDateAdjustment;
         const isShown: boolean = !!adjustment?.isAdjusted;
 
@@ -100,8 +103,9 @@ export class SubtitleWarningComponent extends SubtitleComponent {
                 const template: string = this.constructorOptions.localizationManager?.getDisplayName("Visual_StartDateHint_Invalid") ?? "Visual_StartDateHint_Invalid";
                 message = `\u26A0\uFE0F ${template.replace("${1}", adjustment.requestedText ?? "")}`;
             } else {
-                const requested: string = getFormattedDate(adjustment.requestedDate);
-                const actual: string = getFormattedDate(adjustment.actualDate);
+                const dateFormat: string = dateSettings?.format?.value;
+                const requested: string = getFormattedDate(adjustment.requestedDate, dateFormat);
+                const actual: string = getFormattedDate(adjustment.actualDate, dateFormat);
 
                 const messageKey: string = adjustment.isOutOfRange
                     ? "Visual_StartDateHint_OutOfRange"

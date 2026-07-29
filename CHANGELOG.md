@@ -8,6 +8,8 @@
 
 ### Fixes
 * Fix "Change start date": the start date is now matched by calendar day, a missing date falls back to the next available date, and an out-of-range date falls back to the closest available date instead of showing a 0% change. A hint icon explains any adjustment.
+  * **Note:** existing reports whose start date did not exactly match a data point may show a recalculated "% change" and days count. These are the corrected values.
+
 ## 3.0.1.0
 ### Fixes
 * Add bold, italic and underline to sparkline value

@@ -137,6 +137,9 @@ export class ChartLabelComponent extends ChartLabelBaseComponent<IChartLabelComp
             [
                 {
                     color: kpiSettings.dateColor.value.value,
+                    // The "(since ...)" suffix deliberately applies only to a manually typed start date
+                    // (kpiSettings.percentCalcDate). A start date coming from a data-bound changeStartDate
+                    // field (dataRepresentation.percentCalcDate) intentionally does not trigger this suffix.
                     data: kpiSettings.showStartDate.value && kpiSettings.percentCalcDate
                         ? `${series.dateDifference} days (since ${series.formattedDate})`
                         : `${series.dateDifference} days`,

@@ -150,6 +150,8 @@ export class MultiKpi implements powerbi.extensibility.visual.IVisual {
             this.host.eventService.renderingStarted(options);
 
             if (this.handleLandingPage(options)) {
+                this.settings = this.formattingSettingsService.populateFormattingSettingsModel(Settings, options?.dataViews?.[0]);
+                this.settings.parse(this.host.colorPalette, this.localizationManager);
                 this.rootComponent.hide?.();
                 this.renderNoDataMessage(null);
             } else {
