@@ -51,6 +51,7 @@ import {
 } from "../src/converter/data/dataRepresentation";
 
 import { isValueValid } from "../src/utils/isValueValid";
+import { isValidDate } from "../src/utils/isValidDate";
 import { DataGapDetector, IDataGapResult } from "../src/utils/dataGapDetector";
 
 import { DataConverter } from "../src/converter/data/dataConverter";
@@ -1123,6 +1124,25 @@ describe("Multi KPI", () => {
                 expect(isValueValid(-Infinity)).toBeFalsy();
             });
         });
+
+        describe("isValidDate", () => {
+            it("should return true for a valid date", () => {
+                expect(isValidDate(new Date(2018, 0, 1))).toBeTruthy();
+            });
+
+            it("should return false for an invalid date", () => {
+                expect(isValidDate(new Date("not-a-date"))).toBeFalsy();
+            });
+
+            it("should return false for a non-date value", () => {
+                expect(isValidDate("2018-01-01")).toBeFalsy();
+            });
+
+            it("should return false for null or undefined", () => {
+                expect(isValidDate(null)).toBeFalsy();
+                expect(isValidDate(undefined)).toBeFalsy();
+            });
+        });
     });
 
     describe("DataFormatter", () => {
@@ -1187,21 +1207,7 @@ describe("Multi KPI", () => {
                 expect(dataPoint).toBe(defaultDataPoint);
             });
 
-            it("should return defaultDataPoint if there's no the closest dataPoint", () => {
-                const dataPoint: IDataRepresentationPoint = dataConverter.findClosestDataPointByDate(
-                    [{
-                        index: 0,
-                        x: new Date(2018, 8, 8),
-                        y: 200,
-                    }],
-                    new Date(2016, 1, 1),
-                    defaultDataPoint,
-                );
-
-                expect(dataPoint).toBe(defaultDataPoint);
-            });
-
-            it("should return the closest dataPoint by date", () => {
+            it("should return the first dataPoint if the date is before the first dataPoint", () => {
                 const firstDataPoint: IDataRepresentationPoint = {
                     index: 0,
                     x: new Date(2018, 8, 8),
@@ -1210,11 +1216,77 @@ describe("Multi KPI", () => {
 
                 const dataPoint: IDataRepresentationPoint = dataConverter.findClosestDataPointByDate(
                     [firstDataPoint],
-                    new Date(2018, 9, 9),
+                    new Date(2016, 1, 1),
                     defaultDataPoint,
                 );
 
                 expect(dataPoint).toBe(firstDataPoint);
+            });
+
+            it("should return the next available dataPoint when there's no exact match", () => {
+                const firstDataPoint: IDataRepresentationPoint = {
+                    index: 0,
+                    x: new Date(2018, 8, 8),
+                    y: 200,
+                };
+
+                const secondDataPoint: IDataRepresentationPoint = {
+                    index: 1,
+                    x: new Date(2018, 8, 20),
+                    y: 300,
+                };
+
+                const dataPoint: IDataRepresentationPoint = dataConverter.findClosestDataPointByDate(
+                    [firstDataPoint, secondDataPoint],
+                    new Date(2018, 8, 15),
+                    defaultDataPoint,
+                );
+
+                expect(dataPoint).toBe(secondDataPoint);
+            });
+
+            it("should match the dataPoint on the same calendar day ignoring the time component", () => {
+                const firstDataPoint: IDataRepresentationPoint = {
+                    index: 0,
+                    x: new Date(2018, 8, 8),
+                    y: 200,
+                };
+
+                const secondDataPoint: IDataRepresentationPoint = {
+                    index: 1,
+                    x: new Date(2018, 8, 20),
+                    y: 300,
+                };
+
+                const dataPoint: IDataRepresentationPoint = dataConverter.findClosestDataPointByDate(
+                    [firstDataPoint, secondDataPoint],
+                    new Date(2018, 8, 20, 13, 45),
+                    defaultDataPoint,
+                );
+
+                expect(dataPoint).toBe(secondDataPoint);
+            });
+
+            it("should return the latest dataPoint if the date is after the last dataPoint", () => {
+                const firstDataPoint: IDataRepresentationPoint = {
+                    index: 0,
+                    x: new Date(2018, 8, 8),
+                    y: 200,
+                };
+
+                const secondDataPoint: IDataRepresentationPoint = {
+                    index: 1,
+                    x: new Date(2018, 8, 20),
+                    y: 300,
+                };
+
+                const dataPoint: IDataRepresentationPoint = dataConverter.findClosestDataPointByDate(
+                    [firstDataPoint, secondDataPoint],
+                    new Date(2019, 0, 1),
+                    defaultDataPoint,
+                );
+
+                expect(dataPoint).toBe(secondDataPoint);
             });
         });
     });

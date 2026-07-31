@@ -34,6 +34,8 @@ import { DataGapDescriptor } from "../settings/descriptors/dataGapDescriptor";
 import { ISubtitleComponentRenderOptions, SubtitleComponent } from "./subtitleComponent";
 import { IVisualComponentConstructorOptions } from "./visualComponentConstructorOptions";
 import { DataGapDetector } from "../utils/dataGapDetector";
+import { getFormattedDate } from "../converter/data/dataFormatter";
+import { FormatDescriptor } from "../settings/descriptors/formatDescriptor";
 
 import VisualTooltipDataItem = powerbi.extensibility.VisualTooltipDataItem;
 import { SubtitleBaseContainerItem } from "../settings/descriptors/subtitleBaseDescriptor";
@@ -44,6 +46,7 @@ export interface ISubtitleWarningComponentRenderOptions extends ISubtitleCompone
     subtitleSettings: SubtitleBaseContainerItem;
     staleDataSettings: StaleDataDescriptor;
     dataGapSettings: DataGapDescriptor;
+    dateSettings: FormatDescriptor;
     series: IDataRepresentationSeries[];
     dataRepresentation: IDataRepresentation;
 }
@@ -60,6 +63,7 @@ export class SubtitleWarningComponent extends SubtitleComponent {
     private warningSelector: CssConstants.ClassAndSelector = this.getSelectorWithPrefix("warning");
     private dataAgeSelector: CssConstants.ClassAndSelector = this.getSelectorWithPrefix("dataAge");
     private dataGapSelector: CssConstants.ClassAndSelector = this.getSelectorWithPrefix("dataGap");
+    private startDateHintSelector: CssConstants.ClassAndSelector = this.getSelectorWithPrefix("startDateHint");
 
     constructor(options: IVisualComponentConstructorOptions) {
         super(options);
@@ -76,12 +80,54 @@ export class SubtitleWarningComponent extends SubtitleComponent {
             series,
             staleDataDifference,
             dataRepresentation,
+            dateSettings,
         } = options;
 
         this.renderWarningMessage(warningState, subtitleSettings.warningText.value);
         super.render(options);
         this.renderStaleData(staleDataSettings, series, staleDataDifference);
         this.renderDataGapWarning(dataGapSettings, dataRepresentation);
+        this.renderStartDateHint(dataRepresentation, dateSettings);
+    }
+
+    private renderStartDateHint(dataRepresentation: IDataRepresentation, dateSettings: FormatDescriptor): void {
+        const adjustment = dataRepresentation.startDateAdjustment;
+        const isShown: boolean = !!adjustment?.isAdjusted;
+
+        let tooltipItems: VisualTooltipDataItem[] = [];
+
+        if (isShown) {
+            let message: string;
+
+            if (adjustment.isInvalidInput) {
+                const template: string = this.constructorOptions.localizationManager?.getDisplayName("Visual_StartDateHint_Invalid") ?? "Visual_StartDateHint_Invalid";
+                message = `\u26A0\uFE0F ${template.replace("${1}", adjustment.requestedText ?? "")}`;
+            } else {
+                const dateFormat: string = dateSettings?.format?.value;
+                const requested: string = getFormattedDate(adjustment.requestedDate, dateFormat);
+                const actual: string = getFormattedDate(adjustment.actualDate, dateFormat);
+
+                const messageKey: string = adjustment.isOutOfRange
+                    ? "Visual_StartDateHint_OutOfRange"
+                    : "Visual_StartDateHint_Gap";
+
+                const template: string = this.constructorOptions.localizationManager?.getDisplayName(messageKey) ?? messageKey;
+                message = `\u26A0\uFE0F ${template.replace("${1}", requested).replace("${2}", actual)}`;
+            }
+
+            tooltipItems = [{
+                displayName: null,
+                value: message,
+            }];
+        }
+
+        this.renderIcon({
+            backgroundColor: null,
+            color: null,
+            isShown,
+            selector: this.startDateHintSelector,
+            tooltipItems,
+        });
     }
 
     private renderWarningMessage(warningState: number, warningText: string): void {

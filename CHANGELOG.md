@@ -2,6 +2,13 @@
 ### New feature
 * Add new option "Data Gaps" to detect missing days in time-series data and display a warning icon when gaps are found. The icon is shown by default and appears automatically whenever gaps are detected.
 * Add Data Gaps controls to toggle the icon, adjust its colors, and set a custom message.
+* Add a landing page (with the visual icon) shown when no fields are added, guiding the user to add Date and Values.
+* Add empty-state messages for missing Date/Values fields, invalid or blank dates, and data with no valid values.
+* Add a "Show start date" option in the KPI card to display the reference date next to the days count (e.g. "545 days (since 1/1/2024)").
+
+### Fixes
+* Fix "Change start date": the start date is now matched by calendar day, a missing date falls back to the next available date, and an out-of-range date falls back to the closest available date instead of showing a 0% change. A hint icon explains any adjustment.
+  * **Note:** existing reports whose start date did not exactly match a data point may show a recalculated "% change" and days count. These are the corrected values.
 
 ## 3.0.1.0
 ### Fixes

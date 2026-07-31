@@ -33,6 +33,57 @@
     user-select: none;
 }
 
+.multiKpi_emptyState {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 0 12px;
+    text-align: center;
+    font-family: "Segoe UI", wf_standard-font, helvetica, arial, sans-serif;
+    font-size: 12px;
+    color: #666666;
+}
+
+.multiKpi_landingPage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 12px 24px;
+    text-align: center;
+    font-family: "Segoe UI", wf_standard-font, helvetica, arial, sans-serif;
+    color: #666666;
+
+    .multiKpi_landingPage_icon {
+        width: 96px;
+        height: 96px;
+        margin-bottom: 16px;
+        background-image: data-uri('../assets/icon.svg');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+    }
+
+    .multiKpi_landingPage_title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333333;
+        margin-bottom: 6px;
+    }
+
+    .multiKpi_landingPage_description {
+        font-size: 12px;
+        line-height: 1.4;
+        max-width: 360px;
+    }
+}
+
 @font-face {
     font-family: 'MultiKPIGlyph';
     src: data-uri('../fonts/PowerVisuals.eot') format('embedded-opentype'),
@@ -329,6 +380,19 @@
                 content: '\E71B';
             }
 
+            padding: 0 0.2em 0 0.2em;
+        }
+
+        .multiKpi_startDateHint {
+            .multiKpi_glyphIcon();
+            .flexOrder(5);
+            text-align: right;
+
+            &::before {
+                content: '\E71B';
+            }
+
+            color: rgb(232, 17, 35) !important;
             padding: 0 0.2em 0 0.2em;
         }
     }
